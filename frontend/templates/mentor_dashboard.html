@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mentor Dashboard — Smart CCTV Attendance System">
+    <title>Mentor Dashboard — Smart Attendance AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo"><i class="fas fa-microchip"></i></div>
+            <div>
+                <div class="sidebar-title">SM-Atten <span>MENTOR</span></div>
+                <div style="font-size:0.62rem;color:var(--text-dim);letter-spacing:1px">TEACHING CONSOLE</div>
+            </div>
+        </div>
+        <nav>
+            {% if current_user.role in ['admin', 'mentor'] %}
+            <a href="/dashboard" class="nav-item active"><i class="fas fa-layer-group"></i> Dashboard</a>
+            <a href="/attendance" class="nav-item"><i class="fas fa-calendar-check"></i> Attendance</a>
+            <a href="/students" class="nav-item"><i class="fas fa-users-viewfinder"></i> My Students</a>
+            {% if current_user.role == 'admin' %}
+            <a href="/users" class="nav-item"><i class="fas fa-user-shield"></i> Manage Users</a>
+            {% endif %}
+            <a href="/reports" class="nav-item"><i class="fas fa-chart-line"></i> Reports</a>
+            {% else %}
+            <a href="/student_portal" class="nav-item"><i class="fas fa-house-user"></i> Overview</a>
+            {% endif %}
+            <a href="/profile" class="nav-item"><i class="fas fa-circle-user"></i> My Profile</a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="/logout" class="nav-item" style="color:#ff4d6d;opacity:0.8"><i class="fas fa-power-off"></i> Sign Out</a>
+        </div>
+    </aside>
+
+    <main class="main-stage">
+        <header class="page-header fade-in">
+            <div class="page-title-area">
+                <p>Section {{ current_user.section }} — Live Monitor</p>
+                <h1 class="text-gradient">Mentor Dashboard</h1>
+            </div>
+            <div class="user-badge">
+                <img src="https://ui-avatars.com/api/?name={{ current_user.name }}&background=00c6ff&color=000&size=80" class="user-avatar" alt="Mentor">
+                <div class="user-info">
+                    <div class="name">{{ current_user.name }}</div>
+                    <div class="role"><i class="fas fa-chalkboard-teacher" style="color:var(--highlight)"></i> Mentor · Sec {{ current_user.section }}</div>
+                    {% if current_user.subjects %}
+                    <div style="font-size:0.7rem;color:var(--text-dim);margin-top:4px">
+                        <i class="fas fa-book-open"></i> 
+                        {% for sub in current_user.subjects.split(',') %}
+                        <span style="background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:4px;margin-right:2px">{{ sub.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="stat-card glass-card fade-in anim-delay-1">
+                <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+                <div class="stat-label">Section Students</div>
+                <div class="stat-value text-gradient" id="mentorStatTotal">{{ students|length }}</div>
+                <div class="stat-trend">Section {{ current_user.section }}</div>
+            </div>
+            <div class="stat-card glass-card fade-in anim-delay-2">
+                <div class="stat-icon green"><i class="fas fa-face-smile"></i></div>
+                <div class="stat-label">Present Today</div>
+                <div class="stat-value" style="color:var(--success)" id="mentorStatPresent">{{ attendance|length }}</div>
+                <div class="stat-trend">Auto-detected</div>
+            </div>
+            <div class="stat-card glass-card fade-in anim-delay-3">
+                <div class="stat-icon red"><i class="fas fa-user-clock"></i></div>
+                <div class="stat-label">Absent Today</div>
+                <div class="stat-value" style="color:var(--error)" id="mentorStatAbsent">{{ students|length - attendance|length }}</div>
+                <div class="stat-trend">Not yet detected</div>
+            </div>
+        </div>
+
+        <!-- Missed Attendance Requests (AI Detected Discrepancies) -->
+        <div class="glass-panel" style="padding:2rem;margin-bottom:1.5rem;overflow:visible;border-color:rgba(255,209,102,0.2)">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-clipboard-question" style="color:var(--warning)"></i> Missed Attendance Requests <span class="badge badge-orange" style="font-size:0.72rem" id="missedCount">{{ missed_requests|length }}</span></div>
+                <div style="font-size:0.8rem;color:var(--text-dim)"><i class="fas fa-robot"></i> AI generated from later detection</div>
+            </div>
+            <div class="table-wrapper">
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Roll No.</th>
+                            <th>Date</th>
+                            <th>Periods (Missed -> Found)</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="missedReqsBody">
+                        {% for req in missed_requests %}
+                        {# req = (id, name, roll, section, missed_period, detected_period, date, status) #}
+                        <tr id="req-row-{{ req[0] }}">
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,209,102,0.12);color:var(--warning);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;border:1px solid rgba(255,209,102,0.2)">{{ req[1][0].upper() }}</div>
+                                    <span style="font-weight:500">{{ req[1] }}</span>
+                                </div>
+                            </td>
+                            <td><span class="mono" style="color:var(--text-dim);font-size:0.82rem">{{ req[2] }}</span></td>
+                            <td style="color:var(--text-dim)">{{ req[6] }}</td>
+                            <td>
+                                <span class="badge badge-absent" style="opacity:0.8">{{ req[4] }}</span>
+                                <i class="fas fa-arrow-right" style="color:var(--text-dim);font-size:0.7rem;margin:0 5px"></i>
+                                <span class="badge badge-present" style="opacity:0.8">{{ req[5] }}</span>
+                            </td>
+                            <td>
+                                {% if req[7] == 'pending' %}
+                                <span class="badge badge-orange" id="req-status-{{ req[0] }}"><i class="fas fa-clock"></i> Pending</span>
+                                {% elif req[7] == 'approved' %}
+                                <span class="badge badge-present" id="req-status-{{ req[0] }}"><i class="fas fa-check"></i> Approved</span>
+                                {% else %}
+                                <span class="badge badge-absent" id="req-status-{{ req[0] }}"><i class="fas fa-times"></i> Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if req[7] == 'pending' %}
+                                <div style="display:flex;gap:6px" id="req-actions-{{ req[0] }}">
+                                    <button onclick="processRequest({{ req[0] }}, 'approved')" class="btn-icon" style="color:var(--success);border-color:rgba(0,255,159,0.3);background:rgba(0,255,159,0.1)" title="Approve & Mark Present"><i class="fas fa-check"></i></button>
+                                    <button onclick="processRequest({{ req[0] }}, 'rejected')" class="btn-icon danger" title="Reject (Keep Absent)"><i class="fas fa-times"></i></button>
+                                </div>
+                                {% else %}
+                                <span style="font-size:0.8rem;color:var(--text-dim)"><i class="fas fa-lock"></i> Locked</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="fas fa-clipboard-check"></i>
+                                    <p>No discrepancy requests found. Everything looks good!</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem">
+            <!-- Live Logs Table -->
+            <div class="glass-panel" style="padding:2rem;overflow:visible">
+                <div class="section-header">
+                    <div class="section-title"><i class="fas fa-stream" style="color:var(--highlight)"></i> Live Attendance Log <span style="font-size:0.7rem;font-weight:400;color:var(--text-dim)">(auto-refresh 5s)</span></div>
+                    <div class="live-indicator"><span class="live-dot"></span> LIVE</div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="premium-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Roll No.</th>
+                                <th>Period</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mentorLogsBody">
+                            {% for rec in attendance %}
+                            <tr>
+                                <td>
+                                    <div style="display:flex;align-items:center;gap:10px">
+                                        <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,255,159,0.12);color:var(--success);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;border:1px solid rgba(0,255,159,0.2)">{{ rec[0][0].upper() }}</div>
+                                        <span style="font-weight:500">{{ rec[0] }}</span>
+                                    </div>
+                                </td>
+                                <td><span class="mono" style="color:var(--text-dim);font-size:0.82rem">{{ rec[1] }}</span></td>
+                                <td><span class="badge badge-purple">{{ rec[2] }}</span></td>
+                                <td style="color:var(--text-dim);font-size:0.82rem"><i class="fas fa-clock" style="color:var(--highlight)"></i> {{ rec[3].strftime('%H:%M:%S') }}</td>
+                                <td><span class="badge badge-present"><i class="fas fa-check"></i> {{ rec[4] }}</span></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-state" style="padding:2rem">
+                                        <i class="fas fa-satellite-dish"></i>
+                                        <p>No attendance detected for Section {{ current_user.section }} yet today.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Side: mini chart + quick links -->
+            <div>
+                <!-- Live Session Status Widget -->
+                <div class="glass-panel" style="padding:1.5rem;margin-bottom:1.5rem; border:1px solid rgba(26,115,232,0.3); background: rgba(26,115,232,0.03);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+                        <div class="section-title" style="font-size:0.95rem"><i class="fas fa-satellite-dish" style="color:var(--accent); animation: pulse 1.5s infinite"></i> Session Status</div>
+                        <span class="badge badge-present" style="font-size:0.65rem">ACTIVE</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:1.2rem">
+                        <div style="width:40px; height:40px; border-radius:50%; background:rgba(26,115,232,0.1); display:flex; align-items:center; justify-content:center; color:var(--highlight)">
+                            <i class="fas fa-spinner fa-spin" style="font-size:1.2rem" id="sessionSpinner"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:0.88rem; font-weight:600" id="sessionStatus">Scanning...</div>
+                            <div style="font-size:0.75rem; color:var(--text-dim)" id="sessionMessage">Initializing AI Recognition...</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-neon" id="endSessionBtn" style="width:100%; justify-content:center; padding:10px; font-size:0.8rem; background:linear-gradient(135deg, var(--error), #dc2626); border-color:#dc2626; box-shadow:0 4px 15px rgba(220,38,38,0.3);" onclick="endAttendanceSession()">
+                        <i class="fas fa-circle-stop"></i> End Current Session
+                    </button>
+                </div>
+
+                <div class="glass-panel" style="padding:1.5rem;margin-bottom:1.5rem">
+                    <div class="section-title" style="font-size:0.95rem;margin-bottom:1rem"><i class="fas fa-chart-pie" style="color:var(--warning)"></i> Section Overview</div>
+                    <canvas id="mentorChart" height="200"></canvas>
+                    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;font-size:0.78rem">
+                        <span style="color:var(--success)"><i class="fas fa-circle" style="font-size:0.6rem"></i> Present</span>
+                        <span style="color:var(--error)"><i class="fas fa-circle" style="font-size:0.6rem"></i> Absent</span>
+                    </div>
+                </div>
+
+                <div class="glass-panel" style="padding:1.5rem">
+                    <div class="section-title" style="font-size:0.95rem;margin-bottom:1rem"><i class="fas fa-bolt" style="color:var(--warning)"></i> Quick Actions</div>
+                    <div style="display:flex;flex-direction:column;gap:0.6rem">
+                        <a href="/attendance" class="btn-ghost" style="justify-content:flex-start;border-radius:12px">
+                            <i class="fas fa-calendar-check"></i> View Full Attendance
+                        </a>
+                        <a href="/reports" class="btn-ghost" style="justify-content:flex-start;border-radius:12px">
+                            <i class="fas fa-file-excel"></i> Download Report
+                        </a>
+                        <a href="/students" class="btn-ghost" style="justify-content:flex-start;border-radius:12px">
+                            <i class="fas fa-users"></i> View Students
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Scripts -->
+<script>
+// API actions for missed requests
+async function processRequest(reqId, action) {
+    if(!confirm('Are you sure you want to ' + (action==='approved'?'APPROVE (Mark Present)':'REJECT (Keep Absent)') + ' this missed attendance request?')) return;
+    
+    try {
+        const res = await fetch(`/api/process_missed_request/${reqId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: action})
+        });
+        if(res.ok) {
+            // Update UI
+            document.getElementById('req-actions-'+reqId).innerHTML = '<span style="font-size:0.8rem;color:var(--text-dim)"><i class="fas fa-lock"></i> Locked</span>';
+            const statusSpn = document.getElementById('req-status-'+reqId);
+            if(action === 'approved') {
+                statusSpn.className = 'badge badge-present';
+                statusSpn.innerHTML = '<i class="fas fa-check"></i> Approved';
+            } else {
+                statusSpn.className = 'badge badge-absent';
+                statusSpn.innerHTML = '<i class="fas fa-times"></i> Rejected';
+            }
+        } else {
+            alert('Failed to process request.');
+        }
+    } catch(e) {
+        alert('Server connection error.');
+    }
+}
+
+// Section chart
+const mentorPresent = {{ attendance|length }};
+const mentorTotal = {{ students|length }};
+const mentorAbsent = mentorTotal - mentorPresent;
+const ctx = document.getElementById('mentorChart').getContext('2d');
+new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: [mentorPresent || 1, mentorAbsent < 0 ? 0 : (mentorAbsent || (mentorPresent === 0 ? 1 : 0))],
+            backgroundColor: ['rgba(0,255,159,0.7)', 'rgba(255,77,109,0.7)'],
+            borderColor: ['rgba(0,255,159,0.9)', 'rgba(255,77,109,0.9)'],
+            borderWidth: 2, hoverOffset: 8
+        }]
+    },
+    options: {
+        responsive: true, cutout: '68%',
+        plugins: {
+            legend: { display: false },
+            tooltip: { backgroundColor: 'rgba(8,13,36,0.95)', borderColor: 'rgba(100,140,255,0.2)', borderWidth: 1, bodyColor: '#f0f4ff' }
+        }
+    }
+});
+
+// Live refresh
+function renderMentorLogs(rows) {
+    const tbody = document.getElementById('mentorLogsBody');
+    tbody.innerHTML = '';
+    if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state" style="padding:2rem"><i class="fas fa-satellite-dish"></i><p>No attendance detected yet today.</p></div></td></tr>`;
+        return;
+    }
+    rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:rgba(0,255,159,0.12);color:var(--success);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;border:1px solid rgba(0,255,159,0.2)">${(r.name||'?')[0].toUpperCase()}</div><span style="font-weight:500">${r.name}</span></div></td>
+            <td><span class="mono" style="color:var(--text-dim);font-size:0.82rem">${r.roll_number}</span></td>
+            <td><span class="badge badge-purple">${r.period}</span></td>
+            <td style="color:var(--text-dim);font-size:0.82rem"><i class="fas fa-clock" style="color:var(--highlight)"></i> ${r.time_marked}</td>
+            <td><span class="badge badge-present"><i class="fas fa-check"></i> ${r.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function refreshMentorDashboard() {
+    try {
+        const res = await fetch('/api/mentor_today_logs?section={{ current_user.section }}', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('mentorStatPresent').textContent = data.count;
+        document.getElementById('mentorStatAbsent').textContent = Math.max(0, mentorTotal - data.count);
+        renderMentorLogs(data.logs);
+    } catch(e) {}
+}
+setInterval(refreshMentorDashboard, 5000);
+
+// Live poll for recognition step/status
+function pollLiveStatus() {
+    setInterval(async () => {
+        try {
+            const res = await fetch('/api/live_status');
+            if (res.ok) {
+                const data = await res.json();
+                const statusEl = document.getElementById('sessionStatus');
+                const messageEl = document.getElementById('sessionMessage');
+                const spinnerEl = document.getElementById('sessionSpinner');
+                
+                statusEl.textContent = data.status;
+                messageEl.textContent = data.student_name ? `${data.student_name} (${data.message})` : data.message;
+                
+                // Update spinner/icon based on status
+                if (data.status === 'Face Matched') {
+                    spinnerEl.className = 'fas fa-check-circle';
+                    spinnerEl.style.color = 'var(--success)';
+                } else if (data.status === 'Scanning...') {
+                    spinnerEl.className = 'fas fa-spinner fa-spin';
+                    spinnerEl.style.color = 'var(--highlight)';
+                } else {
+                    spinnerEl.className = 'fas fa-circle-notch fa-spin';
+                    spinnerEl.style.color = 'var(--warning)';
+                }
+            }
+        } catch (e) {}
+    }, 1000);
+}
+pollLiveStatus();
+
+// End attendance session function
+async function endAttendanceSession() {
+    if (!confirm("Are you sure you want to end the current attendance session? This will finalize today's attendance logs.")) return;
+    
+    const btn = document.getElementById('endSessionBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    try {
+        const res = await fetch('/api/end_session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            alert("Attendance session ended successfully! Cache has been cleared.");
+            window.location.reload();
+        } else {
+            alert("Error ending session: " + data.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-circle-stop"></i> End Current Session';
+        }
+    } catch (e) {
+        alert("Request failed. Please try again.");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-circle-stop"></i> End Current Session';
+    }
+}
+</script>
+</body>
+</html>

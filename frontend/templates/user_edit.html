@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit User — Smart Attendance AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:2rem; }
+        .edit-wrap { width:100%; max-width:560px; animation: fadeIn 0.6s ease; }
+    </style>
+</head>
+<body>
+<div class="edit-wrap">
+    <div style="text-align:center;margin-bottom:1.5rem">
+        <a href="/users" class="btn-ghost" style="font-size:0.8rem;display:inline-flex"><i class="fas fa-arrow-left"></i> Back to Users</a>
+    </div>
+    <div class="glass-panel" style="padding:2.5rem">
+        <div style="text-align:center;margin-bottom:2rem">
+            <img src="https://ui-avatars.com/api/?name={{ user[1] }}&background=1a73e8&color=fff&size=80" style="width:80px;height:80px;border-radius:22px;margin-bottom:1.2rem" alt="{{ user[1] }}">
+            <h1 style="font-size:1.5rem;margin-bottom:0.3rem">Edit User</h1>
+            <p class="text-dim" style="font-size:0.85rem">{{ user[2] }}</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ 'success' if cat == 'success' else 'error' }}">
+            <i class="fas fa-{{ 'check-circle' if cat == 'success' else 'triangle-exclamation' }}"></i>
+            <span>{{ msg }}</span>
+        </div>
+        {% endfor %}{% endif %}{% endwith %}
+
+        <form action="/users/edit/{{ user[0] }}" method="POST">
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-user"></i> Full Name *</label>
+                <input type="text" name="name" class="custom-input" value="{{ user[1] }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-envelope"></i> Email Address *</label>
+                <input type="email" name="email" class="custom-input" value="{{ user[2] }}" required>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-shield-halved"></i> Role</label>
+                    <select name="role" class="custom-input">
+                        <option value="admin" {{ 'selected' if user[3]=='admin' }}>Admin</option>
+                        <option value="mentor" {{ 'selected' if user[3]=='mentor' }}>Mentor</option>
+                        <option value="student" {{ 'selected' if user[3]=='student' }}>Student</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-layer-group"></i> Section</label>
+                    <input type="text" name="section" class="custom-input" value="{{ user[4] or '' }}" placeholder="e.g. B1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-book"></i> Subjects Handled (Up to 4)</label>
+                {% set sub_list = (user[5] or "").split(',') %}
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+                    <input type="text" name="subject_1" class="custom-input" value="{{ sub_list[0].strip() if sub_list|length > 0 else '' }}" placeholder="Subject 1">
+                    <input type="text" name="subject_2" class="custom-input" value="{{ sub_list[1].strip() if sub_list|length > 1 else '' }}" placeholder="Subject 2">
+                    <input type="text" name="subject_3" class="custom-input" value="{{ sub_list[2].strip() if sub_list|length > 2 else '' }}" placeholder="Subject 3">
+                    <input type="text" name="subject_4" class="custom-input" value="{{ sub_list[3].strip() if sub_list|length > 3 else '' }}" placeholder="Subject 4">
+                </div>
+            </div>
+            <div style="display:flex;gap:0.8rem;margin-top:1rem">
+                <button type="submit" class="btn-neon" style="flex:1;justify-content:center">
+                    <i class="fas fa-save"></i> Save User
+                </button>
+                <a href="/users" class="btn-ghost">Cancel</a>
+            </div>
+        </form>
+
+        <div class="divider"></div>
+        <div style="background:rgba(255,77,109,0.05);border:1px solid rgba(255,77,109,0.15);border-radius:14px;padding:1.2rem">
+            <div style="font-size:0.82rem;font-weight:600;color:var(--error);margin-bottom:0.8rem"><i class="fas fa-key"></i> Reset Password</div>
+            <form action="/users/reset-password/{{ user[0] }}" method="POST" style="display:flex;gap:8px">
+                <input type="password" name="new_password" class="custom-input" placeholder="New password (min 6 chars)" required minlength="6" style="font-size:0.85rem;padding:10px 14px">
+                <button type="submit" class="btn-danger" style="padding:10px 16px;flex-shrink:0">Reset</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

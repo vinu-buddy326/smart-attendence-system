@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile — Smart Attendance AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 768px) { .profile-grid { grid-template-columns: 1fr; } }
+        .info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.9rem 0;
+            border-bottom: 1px solid var(--glass-border);
+            font-size: 0.88rem;
+        }
+        .info-row:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo"><i class="fas fa-microchip"></i></div>
+            <div>
+                <div class="sidebar-title">SM-Atten <span>PRO</span></div>
+                <div style="font-size:0.62rem;color:var(--text-dim);letter-spacing:1px">{{ current_user.role|upper }}</div>
+            </div>
+        </div>
+        <nav>
+            {% if current_user.role in ['admin', 'mentor'] %}
+            <a href="/dashboard" class="nav-item"><i class="fas fa-layer-group"></i> Dashboard</a>
+            <a href="/attendance" class="nav-item"><i class="fas fa-calendar-check"></i> Attendance</a>
+            <a href="/students" class="nav-item"><i class="fas fa-users-viewfinder"></i> Students</a>
+            {% if current_user.role == 'admin' %}
+            <a href="/users" class="nav-item"><i class="fas fa-user-shield"></i> Manage Users</a>
+            <a href="/admin/mentor_academic_works" class="nav-item"><i class="fas fa-chalkboard-user"></i> Academic Works</a>
+            {% endif %}
+            <a href="/reports" class="nav-item"><i class="fas fa-chart-line"></i> Reports</a>
+            {% else %}
+            <a href="/student_portal" class="nav-item"><i class="fas fa-house-user"></i> Overview</a>
+            {% endif %}
+            <a href="/profile" class="nav-item active"><i class="fas fa-circle-user"></i> My Profile</a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="/logout" class="nav-item" style="color:#ff4d6d;opacity:0.8"><i class="fas fa-power-off"></i> Sign Out</a>
+        </div>
+    </aside>
+
+    <main class="main-stage">
+        <header class="page-header fade-in">
+            <div class="page-title-area">
+                <p>Account Settings</p>
+                <h1 class="text-gradient">My Profile</h1>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ 'success' if cat == 'success' else 'error' }}" style="margin-bottom:1.5rem">
+            <i class="fas fa-{{ 'check-circle' if cat == 'success' else 'triangle-exclamation' }}"></i>
+            <span>{{ msg }}</span>
+        </div>
+        {% endfor %}{% endif %}{% endwith %}
+
+        <!-- Profile Banner -->
+        <div class="glass-panel fade-in" style="padding:2rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:2rem;flex-wrap:wrap">
+            <div style="width:90px;height:90px;border-radius:24px;background:linear-gradient(135deg,var(--accent),var(--highlight));display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:800;color:white;flex-shrink:0;box-shadow:var(--glow-blue)">{{ user[1][0].upper() }}</div>
+            <div>
+                <h2 style="font-size:1.5rem;margin-bottom:0.3rem">{{ user[1] }}</h2>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <span class="badge {% if user[3] == 'admin' %}badge-orange{% elif user[3] == 'mentor' %}badge-blue{% else %}badge-purple{% endif %}">
+                        <i class="fas fa-{% if user[3] == 'admin' %}shield-halved{% elif user[3] == 'mentor' %}chalkboard-teacher{% else %}user-graduate{% endif %}"></i>
+                        {{ user[3]|capitalize }}
+                    </span>
+                    {% if user[4] %}
+                    <span class="badge badge-blue"><i class="fas fa-layer-group"></i> Section {{ user[4] }}</span>
+                    {% endif %}
+                    <span style="color:var(--text-dim);font-size:0.82rem"><i class="fas fa-envelope"></i> {{ user[2] }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <!-- Edit Profile -->
+            <div>
+                <div class="glass-panel" style="padding:2rem;margin-bottom:1.5rem">
+                    <div class="section-title" style="margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--glass-border)">
+                        <i class="fas fa-pen" style="color:var(--highlight)"></i> Edit Profile
+                    </div>
+                    <form action="/profile" method="POST">
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-user"></i> Full Name</label>
+                            <input type="text" name="name" class="custom-input" value="{{ user[1] }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-envelope"></i> Email <span style="font-weight:400;font-size:0.7rem;color:var(--text-dim)">(read-only)</span></label>
+                            <input type="email" class="custom-input" value="{{ user[2] }}" disabled style="opacity:0.5;cursor:not-allowed">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-shield-halved"></i> Role <span style="font-weight:400;font-size:0.7rem;color:var(--text-dim)">(read-only)</span></label>
+                            <input type="text" class="custom-input" value="{{ user[3]|capitalize }}" disabled style="opacity:0.5;cursor:not-allowed">
+                        </div>
+                        {% if current_user.role != 'admin' %}
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-layer-group"></i> Section</label>
+                            <input type="text" name="section" class="custom-input" value="{{ user[4] or '' }}" placeholder="e.g. B1">
+                        </div>
+                        {% endif %}
+                        {% if current_user.role in ['admin', 'mentor'] %}
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-book"></i> Subjects Handled (Up to 4)</label>
+                            {% set sub_list = (user[5] or "").split(',') %}
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+                                <input type="text" name="subject_1" class="custom-input" value="{{ sub_list[0].strip() if sub_list|length > 0 else '' }}" placeholder="Subject 1">
+                                <input type="text" name="subject_2" class="custom-input" value="{{ sub_list[1].strip() if sub_list|length > 1 else '' }}" placeholder="Subject 2">
+                                <input type="text" name="subject_3" class="custom-input" value="{{ sub_list[2].strip() if sub_list|length > 2 else '' }}" placeholder="Subject 3">
+                                <input type="text" name="subject_4" class="custom-input" value="{{ sub_list[3].strip() if sub_list|length > 3 else '' }}" placeholder="Subject 4">
+                            </div>
+                        </div>
+                        {% endif %}
+                        <button type="submit" class="btn-neon" style="width:100%;justify-content:center;margin-top:0.5rem">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Account Info -->
+                <div class="glass-panel" style="padding:2rem">
+                    <div class="section-title" style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--glass-border)">
+                        <i class="fas fa-circle-info" style="color:var(--warning)"></i> Account Info
+                    </div>
+                    <div class="info-row">
+                        <span class="text-dim">User ID</span>
+                        <span class="mono" style="color:var(--highlight)">#{{ user[0] }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-dim">Email</span>
+                        <span style="font-size:0.85rem">{{ user[2] }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-dim">Role</span>
+                        <span class="badge {% if user[3] == 'admin' %}badge-orange{% elif user[3] == 'mentor' %}badge-blue{% else %}badge-purple{% endif %}">{{ user[3]|capitalize }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-dim">Section</span>
+                        <span>{{ user[4] or 'All Sections' }}</span>
+                    </div>
+                    {% if user[3] in ['admin', 'mentor'] %}
+                    <div class="info-row">
+                        <span class="text-dim">Subjects</span>
+                        <span>{{ user[5] or 'Not specified' }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <span class="text-dim">System Status</span>
+                        <span class="badge badge-present"><span class="live-dot" style="width:6px;height:6px;display:inline-block;margin-right:4px"></span> Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Change Password -->
+            <div>
+                <div class="glass-panel" style="padding:2rem">
+                    <div class="section-title" style="margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--glass-border)">
+                        <i class="fas fa-lock" style="color:var(--error)"></i> Change Password
+                    </div>
+                    <form action="/change-password" method="POST" id="pwdForm">
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-key"></i> Current Password</label>
+                            <input type="password" name="current_password" class="custom-input" placeholder="Enter current password" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-lock"></i> New Password</label>
+                            <input type="password" name="new_password" id="newPwd" class="custom-input" placeholder="Minimum 6 characters" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-check-double"></i> Confirm Password</label>
+                            <input type="password" name="confirm_password" id="confirmPwd" class="custom-input" placeholder="Repeat new password" required minlength="6">
+                        </div>
+                        <div id="pwdMatchMsg" style="font-size:0.78rem;margin-bottom:1rem;display:none"></div>
+                        <button type="submit" class="btn-neon" style="width:100%;justify-content:center;background:linear-gradient(135deg,#ff6b6b,#ee5a24)">
+                            <i class="fas fa-key"></i> Update Password
+                        </button>
+                    </form>
+                </div>
+
+                <div class="glass-panel" style="padding:1.5rem;margin-top:1.5rem;border-color:rgba(255,209,102,0.15)">
+                    <div style="display:flex;gap:12px;align-items:flex-start">
+                        <i class="fas fa-shield-halved" style="color:var(--warning);font-size:1.3rem;margin-top:2px"></i>
+                        <div>
+                            <div style="font-weight:600;margin-bottom:4px">Security Tips</div>
+                            <ul style="font-size:0.8rem;color:var(--text-dim);padding-left:1rem;line-height:1.8">
+                                <li>Use a strong, unique password</li>
+                                <li>Never share your credentials</li>
+                                <li>Log out on shared devices</li>
+                                <li>Students: default password is your roll number</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+const newPwd = document.getElementById('newPwd');
+const confirmPwd = document.getElementById('confirmPwd');
+const msg = document.getElementById('pwdMatchMsg');
+
+function checkMatch() {
+    if (confirmPwd.value.length === 0) { msg.style.display = 'none'; return; }
+    msg.style.display = 'block';
+    if (newPwd.value === confirmPwd.value) {
+        msg.innerHTML = '<i class="fas fa-check-circle" style="color:var(--success)"></i> Passwords match';
+        msg.style.color = 'var(--success)';
+    } else {
+        msg.innerHTML = '<i class="fas fa-times-circle" style="color:var(--error)"></i> Passwords do not match';
+        msg.style.color = 'var(--error)';
+    }
+}
+
+confirmPwd.addEventListener('input', checkMatch);
+newPwd.addEventListener('input', checkMatch);
+</script>
+</body>
+</html>

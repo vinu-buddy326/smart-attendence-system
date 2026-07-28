@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-Based Smart CCTV Attendance System - Secure Login Portal">
+    <title>Login — Smart Attendance AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .login-page {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 100%;
+            max-width: 1000px;
+            min-height: 580px;
+            border-radius: 28px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+            animation: fadeIn 0.7s ease;
+        }
+
+        /* Left Panel – hero */
+        .login-hero {
+            background: linear-gradient(145deg, rgba(26,115,232,0.15) 0%, rgba(108,63,232,0.15) 100%);
+            backdrop-filter: blur(20px);
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            border-right: 1px solid var(--glass-border);
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 350px; height: 350px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(26,115,232,0.3) 0%, transparent 70%);
+            top: -100px; left: -100px;
+            pointer-events: none;
+        }
+
+        .hero-glow-2 {
+            position: absolute;
+            width: 250px; height: 250px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(108,63,232,0.25) 0%, transparent 70%);
+            bottom: -80px; right: -80px;
+            pointer-events: none;
+        }
+
+        .hero-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1;
+        }
+
+        .hero-logo-icon {
+            width: 46px; height: 46px;
+            background: linear-gradient(135deg, var(--accent), var(--highlight));
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            box-shadow: 0 6px 20px rgba(26,115,232,0.4);
+        }
+
+        .hero-center { z-index: 1; }
+
+        .scanner-wrapper {
+            width: 200px; height: 200px;
+            margin: 0 auto 2rem;
+            position: relative;
+        }
+
+        .scanner-wrapper .scanner-container {
+            width: 100%; height: 100%;
+            margin: 0;
+            border-radius: 30px;
+        }
+
+        .hero-features { z-index: 1; }
+
+        .hero-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 0.88rem;
+            color: var(--text-dim);
+        }
+
+        .hero-feature i { color: var(--success); font-size: 0.85rem; width: 20px; }
+
+        /* Right Panel – form */
+        .login-form-panel {
+            background: rgba(8,13,36,0.95);
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-title { font-size: 1.8rem; margin-bottom: 0.4rem; }
+        .login-subtitle { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 2rem; }
+
+        .input-icon-wrap { position: relative; }
+        .input-icon-wrap i {
+            position: absolute;
+            left: 16px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+        .input-icon-wrap .custom-input { padding-left: 44px; }
+
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.88rem;
+            color: var(--text-dim);
+        }
+
+        .login-link a {
+            color: var(--highlight);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover { text-decoration: underline; }
+
+        .version-bar {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .role-selector {
+            display: flex;
+            background: rgba(14,22,60,0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 2rem;
+        }
+
+        .role-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 10px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .role-btn:hover { color: white; }
+        
+        .role-btn.active {
+            background: linear-gradient(135deg, var(--accent), var(--highlight));
+            color: white;
+            box-shadow: 0 4px 15px rgba(26,115,232,0.4);
+        }
+
+        @media (max-width: 768px) {
+            .login-page { grid-template-columns: 1fr; min-height: auto; }
+            .login-hero { display: none; }
+            .login-form-panel { padding: 2rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-page">
+        <!-- Left Hero Panel -->
+        <div class="login-hero">
+            <div class="hero-glow"></div>
+            <div class="hero-glow-2"></div>
+
+            <div class="hero-logo">
+                <div class="hero-logo-icon"><i class="fas fa-microchip"></i></div>
+                <div>
+                    <div style="font-size:1.1rem;font-weight:700;font-family:'Space Grotesk',sans-serif">SM-Atten</div>
+                    <div style="font-size:0.65rem;color:var(--text-dim);letter-spacing:1px">SMART CCTV AI</div>
+                </div>
+            </div>
+
+            <div class="hero-center">
+                <div class="scanner-wrapper">
+                    <div class="scanner-container" id="scannerContainer">
+                        <div class="scanner-line" id="scannerLine"></div>
+                        <div class="scanner-corner corner-tl"></div>
+                        <div class="scanner-corner corner-tr"></div>
+                        <div class="scanner-corner corner-bl"></div>
+                        <div class="scanner-corner corner-br"></div>
+                        <div style="height:100%;display:flex;align-items:center;justify-content:center;" id="scannerPlaceholder">
+                            <i class="fas fa-face-viewfinder" style="font-size:5rem;color:rgba(26,115,232,0.35)"></i>
+                        </div>
+                        <img id="scannerVideo" style="width:100%; height:100%; object-fit:cover; border-radius:30px; display:none;" alt="Webcam Feed">
+                    </div>
+                </div>
+                <div id="faceLoginStatus" style="text-align:center; font-size:0.9rem; color:var(--accent); margin-top:1rem; min-height: 24px; font-weight:600; display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> Aligning face...
+                </div>
+                <h2 class="shimmer-text" style="font-size:1.5rem;text-align:center;margin-bottom:0.8rem">AI Biometric Attendance</h2>
+                <p style="text-align:center;color:var(--text-dim);font-size:0.88rem;line-height:1.6">
+                    Automated attendance marking via real-time face recognition from CCTV cameras.
+                </p>
+            </div>
+
+            <div class="hero-features">
+                <div class="hero-feature"><i class="fas fa-check-circle"></i> Liveness detection & anti-spoofing</div>
+                <div class="hero-feature"><i class="fas fa-check-circle"></i> Auto-generated digital ID cards</div>
+                <div class="hero-feature"><i class="fas fa-check-circle"></i> SMS confirmations via Twilio</div>
+                <div class="hero-feature"><i class="fas fa-check-circle"></i> Daily / weekly / monthly reports</div>
+            </div>
+        </div>
+
+        <!-- Right Form Panel -->
+        <div class="login-form-panel">
+            <h1 class="text-gradient login-title">Access Secure</h1>
+            <p class="login-subtitle">Sign in to your attendance portal</p>
+
+            <div id="faceLoginAlert" style="display:none; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
+                <p style="color: #10b981; font-weight: 600; margin-bottom: 0.5rem;"><i class="fas fa-video"></i> Face Login Active</p>
+                <p style="font-size:0.8rem; color: var(--text-dim);">Please stand in front of your camera. You will be redirected automatically upon matching.</p>
+            </div>
+
+            <form action="/login" method="POST" id="loginForm" autocomplete="off">
+                <!-- Dummy inputs to block browser autofill -->
+                <input type="text" name="prevent_autofill_email" style="display:none" tabindex="-1">
+                <input type="password" name="prevent_autofill_pass" style="display:none" tabindex="-1">
+
+                <div class="role-selector">
+                    <button type="button" class="role-btn active" data-role="student" id="roleStudent">
+                        <i class="fas fa-user-graduate"></i> Student
+                    </button>
+                    <button type="button" class="role-btn" data-role="mentor" id="roleMentor">
+                        <i class="fas fa-chalkboard-teacher"></i> Mentor
+                    </button>
+                    <button type="button" class="role-btn" data-role="admin" id="roleAdmin">
+                        <i class="fas fa-shield-halved"></i> Admin
+                    </button>
+                </div>
+                <input type="hidden" name="role" id="selectedRole" value="student">
+
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-envelope"></i> Email Address</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" name="email" class="custom-input" placeholder="id@university.edu" required autocomplete="new-email" readonly onfocus="this.removeAttribute('readonly');">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-lock"></i> Password / Roll Number</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password" class="custom-input" placeholder="••••••••" required autocomplete="new-password" id="passwordInput" readonly onfocus="this.removeAttribute('readonly');">
+                        <span id="togglePwd" onclick="togglePassword()" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-dim)">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </span>
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--text-dim);margin-top:6px">
+                        <i class="fas fa-info-circle"></i> New students: use your roll number as password
+                    </div>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for cat, msg in messages %}
+                    <div class="alert alert-{{ 'success' if cat == 'success' else 'error' }}" style="margin-bottom:1rem">
+                        <i class="fas fa-{{ 'check-circle' if cat == 'success' else 'triangle-exclamation' }}"></i>
+                        <span>{{ msg }}</span>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <button type="submit" class="btn-neon" style="width:100%;justify-content:center;padding:14px;font-size:0.9rem;margin-top:0.5rem" id="submitBtn">
+                    <i class="fas fa-fingerprint"></i> Authenticate Identity
+                </button>
+            </form>
+
+            <div style="text-align:center; margin: 1rem 0;" id="faceLoginDivider">
+                <span style="color:var(--text-dim); font-size: 0.8rem;">— OR —</span>
+            </div>
+            <button type="button" class="btn-neon" id="faceLoginToggleBtn" style="width:100%; justify-content:center; padding:12px; font-size:0.88rem; background: linear-gradient(135deg, #10b981, #059669); border-color: #059669; box-shadow: 0 4px 15px rgba(16,185,129,0.3);" onclick="toggleFaceLogin()">
+                <i class="fas fa-camera"></i> Login with Face Recognition
+            </button>
+
+            <div class="login-link">
+                New student? <a href="/register_student">Enroll in System <i class="fas fa-arrow-right"></i></a>
+            </div>
+
+            <div class="version-bar">
+                <span class="badge badge-present" style="font-size:0.6rem"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:4px;animation:blink 1.5s infinite"></span>System Online</span>
+                <span class="badge badge-blue" style="font-size:0.6rem">v3.0 Neural</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('selectedRole').value = btn.dataset.role;
+            });
+        });
+
+        function togglePassword() {
+            const input = document.getElementById('passwordInput');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+            btn.disabled = true;
+        });
+
+        let faceLoginInterval = null;
+        let isFaceLoginActive = false;
+
+        function toggleFaceLogin() {
+            const video = document.getElementById('scannerVideo');
+            const placeholder = document.getElementById('scannerPlaceholder');
+            const statusDiv = document.getElementById('faceLoginStatus');
+            const alertCard = document.getElementById('faceLoginAlert');
+            const loginForm = document.getElementById('loginForm');
+            const toggleBtn = document.getElementById('faceLoginToggleBtn');
+            const scannerContainer = document.getElementById('scannerContainer');
+
+            isFaceLoginActive = !isFaceLoginActive;
+
+            if (isFaceLoginActive) {
+                // Activate webcam feed
+                video.src = "/video_feed_login";
+                video.style.display = 'block';
+                placeholder.style.display = 'none';
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing camera...';
+                alertCard.style.display = 'block';
+                loginForm.style.display = 'none';
+                
+                // Styling active scanner container
+                scannerContainer.style.boxShadow = '0 0 25px rgba(16,185,129,0.5)';
+                scannerContainer.style.borderColor = '#10b981';
+
+                toggleBtn.innerHTML = '<i class="fas fa-keyboard"></i> Use Password Instead';
+                toggleBtn.style.background = 'linear-gradient(135deg, var(--error), #dc2626)';
+                toggleBtn.style.borderColor = '#dc2626';
+                toggleBtn.style.boxShadow = '0 4px 15px rgba(220,38,38,0.3)';
+
+                // Start polling
+                pollFaceLogin();
+            } else {
+                // Deactivate
+                if (faceLoginInterval) {
+                    clearInterval(faceLoginInterval);
+                    faceLoginInterval = null;
+                }
+                video.removeAttribute('src'); // Stop stream request
+                video.style.display = 'none';
+                placeholder.style.display = 'flex';
+                statusDiv.style.display = 'none';
+                alertCard.style.display = 'none';
+                loginForm.style.display = 'block';
+
+                scannerContainer.style.boxShadow = '';
+                scannerContainer.style.borderColor = '';
+
+                toggleBtn.innerHTML = '<i class="fas fa-camera"></i> Login with Face Recognition';
+                toggleBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                toggleBtn.style.borderColor = '#059669';
+                toggleBtn.style.boxShadow = '0 4px 15px rgba(16,185,129,0.3)';
+            }
+        }
+
+        function pollFaceLogin() {
+            const statusDiv = document.getElementById('faceLoginStatus');
+            
+            // Poll endpoint
+            faceLoginInterval = setInterval(() => {
+                fetch('/api/check_face_login_status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            clearInterval(faceLoginInterval);
+                            statusDiv.innerHTML = '<i class="fas fa-check-circle" style="color:#10b981"></i> Face Matched! Redirecting...';
+                            statusDiv.style.color = '#10b981';
+                            setTimeout(() => {
+                                window.location.href = data.redirect;
+                            }, 1000);
+                        } else {
+                            // Check the general live stream recognition status to display custom feedback
+                            fetch('/api/live_status')
+                                .then(res => res.json())
+                                .then(statusData => {
+                                    if (statusData.status === 'Face Matched') {
+                                        statusDiv.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Authenticating ${statusData.student_name}...`;
+                                    } else if (statusData.status === 'Recognizing Face...') {
+                                        statusDiv.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Matching biometrics...`;
+                                    } else {
+                                        statusDiv.innerHTML = `<i class="fas fa-camera"></i> Scanning face...`;
+                                    }
+                                }).catch(() => {
+                                    statusDiv.innerHTML = `<i class="fas fa-camera"></i> Scanning face...`;
+                                });
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error polling status:', err);
+                    });
+            }, 800);
+        }
+    </script>
+</body>
+</html>

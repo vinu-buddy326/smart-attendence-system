@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management — Smart Attendance AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo"><i class="fas fa-microchip"></i></div>
+            <div>
+                <div class="sidebar-title">SM-Atten <span>PRO</span></div>
+                <div style="font-size:0.62rem;color:var(--text-dim);letter-spacing:1px">ADMIN</div>
+            </div>
+        </div>
+        <nav>
+            {% if current_user.role in ['admin', 'mentor'] %}
+            <a href="/dashboard" class="nav-item"><i class="fas fa-layer-group"></i> Dashboard</a>
+            <a href="/attendance" class="nav-item"><i class="fas fa-calendar-check"></i> Attendance</a>
+            <a href="/students" class="nav-item"><i class="fas fa-users-viewfinder"></i> Students</a>
+            {% if current_user.role == 'admin' %}
+            <a href="/users" class="nav-item active"><i class="fas fa-user-shield"></i> Manage Users</a>
+            <a href="/admin/mentor_academic_works" class="nav-item"><i class="fas fa-chalkboard-user"></i> Academic Works</a>
+            {% endif %}
+            <a href="/reports" class="nav-item"><i class="fas fa-chart-line"></i> Reports</a>
+            {% else %}
+            <a href="/student_portal" class="nav-item"><i class="fas fa-house-user"></i> Overview</a>
+            {% endif %}
+            <a href="/profile" class="nav-item"><i class="fas fa-circle-user"></i> My Profile</a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="/logout" class="nav-item" style="color:#ff4d6d;opacity:0.8"><i class="fas fa-power-off"></i> Sign Out</a>
+        </div>
+    </aside>
+
+    <main class="main-stage">
+        <header class="page-header fade-in">
+            <div class="page-title-area">
+                <p>Admin Panel</p>
+                <h1 class="text-gradient">User Management</h1>
+            </div>
+            <button class="btn-neon" onclick="document.getElementById('addUserModal').classList.add('active')" style="font-size:0.82rem">
+                <i class="fas fa-plus"></i> Add New User
+            </button>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ 'success' if cat == 'success' else 'error' }}" style="margin-bottom:1.5rem">
+            <i class="fas fa-{{ 'check-circle' if cat == 'success' else 'triangle-exclamation' }}"></i>
+            <span>{{ msg }}</span>
+        </div>
+        {% endfor %}{% endif %}{% endwith %}
+
+        <div class="glass-panel" style="padding:2rem;overflow:visible">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-users-gear" style="color:var(--highlight)"></i>
+                    System Users <span class="badge badge-blue" style="font-size:0.72rem">{{ users|length }}</span>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Section</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td style="color:var(--text-dim);font-size:0.78rem">{{ u[0] }}</td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <img src="https://ui-avatars.com/api/?name={{ u[1] }}&background={{ '1a73e8' if u[3]=='admin' else ('00c6ff' if u[3]=='mentor' else '6c3fe8') }}&color=fff&size=60" style="width:34px;height:34px;border-radius:10px;flex-shrink:0" alt="{{ u[1] }}">
+                                    <div>
+                                        <div style="font-weight:600;font-size:0.9rem">
+                                            {{ u[1] }}
+                                            {% if u[0] == current_user.id %}<span style="font-size:0.65rem;color:var(--text-dim);font-weight:400"> (you)</span>{% endif %}
+                                        </div>
+                                        <div style="font-size:0.72rem;color:var(--text-dim)">ID: {{ u[0] }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="color:var(--text-dim);font-size:0.84rem">{{ u[2] }}</td>
+                            <td>
+                                <span class="badge {% if u[3]=='admin' %}badge-orange{% elif u[3]=='mentor' %}badge-blue{% else %}badge-purple{% endif %}">
+                                    <i class="fas fa-{% if u[3]=='admin' %}shield-halved{% elif u[3]=='mentor' %}chalkboard-teacher{% else %}user-graduate{% endif %}"></i>
+                                    {{ u[3]|capitalize }}
+                                </span>
+                            </td>
+                            <td style="color:var(--text-dim)">{{ u[4] or '—' }}</td>
+                            <td>
+                                {% if u[0] != current_user.id %}
+                                <div style="display:flex;gap:6px">
+                                    <a href="/users/edit/{{ u[0] }}" class="btn-icon" title="Edit User"><i class="fas fa-pen"></i></a>
+                                    <form action="/users/delete/{{ u[0] }}" method="POST" onsubmit="return confirm('Delete user {{ u[1] }}? This cannot be undone.')">
+                                        <button type="submit" class="btn-icon danger" title="Delete User"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </div>
+                                {% else %}
+                                <span style="font-size:0.78rem;color:var(--text-dim)"><i class="fas fa-lock"></i> Current user</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="fas fa-users"></i>
+                                    <p>No users found. Add an admin or mentor.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="addUserModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 style="font-size:1.2rem"><i class="fas fa-user-plus" style="color:var(--highlight)"></i> Add New User</h2>
+            <button class="modal-close" onclick="document.getElementById('addUserModal').classList.remove('active')">&times;</button>
+        </div>
+        <form action="/users/add" method="POST">
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-user"></i> Full Name *</label>
+                <input type="text" name="name" class="custom-input" placeholder="e.g. Dr. Ramesh Kumar" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-envelope"></i> Email Address *</label>
+                <input type="email" name="email" class="custom-input" placeholder="user@university.edu" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-lock"></i> Password *</label>
+                <input type="password" name="password" class="custom-input" placeholder="Minimum 6 characters" required minlength="6">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-shield-halved"></i> Role</label>
+                    <select name="role" class="custom-input">
+                        <option value="mentor">Mentor</option>
+                        <option value="admin">Admin</option>
+                        <option value="student">Student</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-layer-group"></i> Section</label>
+                    <input type="text" name="section" class="custom-input" placeholder="e.g. B1 (optional)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-book"></i> Subjects Handled (Up to 4)</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+                    <input type="text" name="subject_1" class="custom-input" placeholder="Subject 1">
+                    <input type="text" name="subject_2" class="custom-input" placeholder="Subject 2">
+                    <input type="text" name="subject_3" class="custom-input" placeholder="Subject 3">
+                    <input type="text" name="subject_4" class="custom-input" placeholder="Subject 4">
+                </div>
+            </div>
+            <div style="display:flex;gap:0.8rem;margin-top:0.5rem">
+                <button type="submit" class="btn-neon" style="flex:1;justify-content:center"><i class="fas fa-check"></i> Create User</button>
+                <button type="button" onclick="document.getElementById('addUserModal').classList.remove('active')" class="btn-ghost">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('addUserModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+});
+</script>
+</body>
+</html>

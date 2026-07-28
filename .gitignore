@@ -1,0 +1,17 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Local configuration / secrets
+.env
+attendance_db
+
+# Logs and generated files
+logs/
+static/id_cards/
+
+# Build artifacts
+build/
+dist/
+*.spec
